@@ -1,0 +1,36 @@
+{
+    "$schema": "https://go.kicad.org/pcm/schemas/v1",
+    "name": "EasyEDA (JLCEDA) 3D Loader",
+    "description": "Download 3D models for EasyEDA (JLCEDA) boards.",
+    "description_full": "After importing an EasyEDA (JLCEDA) board, execute this plugin to download STEP 3D models for your board from JLC.",
+    "identifier": "com.gitlab.dsa-t.easyeda-3d-loader",
+    "type": "plugin",
+    "author": {
+        "name": "dsa-t",
+        "contact": {
+        }
+    },
+    "license": "MIT",
+    "resources": {
+        "homepage": "https://gitlab.com/dsa-t/easyeda-3d-loader"
+    },
+    "tags": [
+        "pcbnew",
+        "models",
+        "easyeda",
+        "jlc"
+    ],
+    "versions": [
+        {
+            "version": "0.9.0",
+            "status": "testing",
+            "kicad_version": "7.99",
+            "kicad_version_max": "9.0",
+            "download_sha256": "SHA256_HERE",
+			"download_size": DOWNLOAD_SIZE_HERE,
+			"download_url": "DOWNLOAD_URL_HERE",
+			"install_size": INSTALL_SIZE_HERE
+        }
+    ]
+}
+

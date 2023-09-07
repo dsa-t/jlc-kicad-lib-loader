@@ -1,0 +1,5 @@
+VERSION=0.9.0
+DOWNLOAD_SHA256=2cbe8268d12b09d5115e1b97049c9b9ad16fb2d9842aae621c0910eea2510a01
+DOWNLOAD_SIZE=10824
+DOWNLOAD_URL=https://gitlab.com/dsa-t/easyeda-3d-loader/-/raw/main/.out/easyeda-3d-loader-0.9.0-pcm.zip
+INSTALL_SIZE=18734
