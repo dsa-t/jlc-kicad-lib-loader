@@ -1,6 +1,6 @@
 #!/bin/sh
 
-VERSION="0.9.0"
+VERSION="1.0.0"
 
 echo "Clean up old files"
 rm -rf .out/archive
@@ -30,12 +30,14 @@ sed -i "/INSTALL_SIZE_HERE/d" .out/archive/metadata.json
 
 echo "Zip PCM archive"
 cd .out/archive
-zip -r ../easyeda-3d-loader-$VERSION-pcm.zip .
+zip -r ../jlc-kicad-lib-loader-$VERSION-pcm.zip .
 cd ../..
 
 echo "Gather data for repo rebuild"
+CI_ENV="${CI_ENV:-.out/env}"
+
 echo VERSION=$VERSION >> $CI_ENV
-echo DOWNLOAD_SHA256=$(shasum --algorithm 256 .out/easyeda-3d-loader-$VERSION-pcm.zip | xargs | cut -d' ' -f1) >> $CI_ENV
-echo DOWNLOAD_SIZE=$(ls -l .out/easyeda-3d-loader-$VERSION-pcm.zip | xargs | cut -d' ' -f5) >> $CI_ENV
-echo DOWNLOAD_URL="https://gitlab.com/dsa-t/easyeda-3d-loader/-/raw/main/.out/easyeda-3d-loader-$VERSION-pcm.zip" >> $CI_ENV
-echo INSTALL_SIZE=$(unzip -l .out/easyeda-3d-loader-$VERSION-pcm.zip | tail -1 | xargs | cut -d' ' -f1) >> $CI_ENV
+echo DOWNLOAD_SHA256=$(shasum --algorithm 256 .out/jlc-kicad-lib-loader-$VERSION-pcm.zip | xargs | cut -d' ' -f1) >> $CI_ENV
+echo DOWNLOAD_SIZE=$(ls -l .out/jlc-kicad-lib-loader-$VERSION-pcm.zip | xargs | cut -d' ' -f5) >> $CI_ENV
+echo DOWNLOAD_URL="https://github.com/dsa-t/jlc-kicad-lib-loader/releases/download/$VERSION/jlc-kicad-lib-loader-$VERSION-pcm.zip" >> $CI_ENV
+echo INSTALL_SIZE=$(unzip -l .out/jlc-kicad-lib-loader-$VERSION-pcm.zip | tail -1 | xargs | cut -d' ' -f1) >> $CI_ENV

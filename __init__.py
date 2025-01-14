@@ -1,3 +1,3 @@
-from .easyeda_3d_loader import EasyEDALoaderPlugin
+from .easyeda_lib_loader import EasyEDALibLoaderPlugin
 
-EasyEDALoaderPlugin().register()
+EasyEDALibLoaderPlugin().register()
