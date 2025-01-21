@@ -7,7 +7,12 @@ import traceback
 import requests
 import logging
 import wx
-import wx.html2
+
+wx_html2_available = True
+try: 
+    import wx.html2
+except ImportError as e:
+    wx_html2_available = False
 
 from threading import Lock, Thread
 from logging import info, warning, debug, error, critical
@@ -236,9 +241,11 @@ class EasyEDALibLoaderPlugin(ActionPlugin):
 
             dlg.m_statusPanel.Layout()
 
-            self.webView.Hide()
-            self.webView.LoadURL( f"https://jlcpcb.com/user-center/lcsvg/svg.html?code={itemCode}" )
-            self.webView.SetZoomFactor(0.8)
+            global wx_html2_available
+            if wx_html2_available:
+                self.webView.Hide()
+                self.webView.LoadURL( f"https://jlcpcb.com/user-center/lcsvg/svg.html?code={itemCode}" )
+                self.webView.SetZoomFactor(0.8)
 
         def onWebviewLoaded( event ):
             self.webView.Show()
@@ -262,8 +269,20 @@ class EasyEDALibLoaderPlugin(ActionPlugin):
 
         dlg.m_textCtrlOutLibName.SetValue("EasyEDA_Lib");
 
-        self.webView = wx.html2.WebView.New(dlg.m_webViewPanel)
-        self.webView.Bind(wx.html2.EVT_WEBVIEW_LOADED, onWebviewLoaded)
+        global wx_html2_available
+        if wx_html2_available:
+            try:
+                self.webView = wx.html2.WebView.New(dlg.m_webViewPanel)
+                self.webView.Bind(wx.html2.EVT_WEBVIEW_LOADED, onWebviewLoaded)
+            except NotImplementedError as err:
+                self.webView = wx.StaticText(dlg.m_webViewPanel, style=wx.ALIGN_CENTER_VERTICAL|wx.ALIGN_CENTRE_HORIZONTAL)
+                self.webView.SetLabel("Preview is not supported in this wxPython environment.")
+                dlg.m_webViewPanel.SetMinSize( wx.Size(20, 20) )
+                wx_html2_available = False
+        else:
+            self.webView = wx.StaticText(dlg.m_webViewPanel, style=wx.ALIGN_CENTER_VERTICAL|wx.ALIGN_CENTRE_HORIZONTAL)
+            self.webView.SetLabel("wx.html2 is not available. Install python3-wxgtk-webview4.0 (Debian/Ubuntu)")
+            dlg.m_webViewPanel.SetMinSize( wx.Size(20, 20) )
 
         dlg.m_webViewPanel.GetSizer().Add(self.webView, 1, wx.EXPAND)
         dlg.m_webViewPanel.Layout()
