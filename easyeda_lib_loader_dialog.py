@@ -77,14 +77,14 @@ class EasyEdaLibLoaderDialog ( wx.Dialog ):
 
 		bStatusSizer.Add( self.m_searchStatus2, 0, wx.ALIGN_CENTER_VERTICAL|wx.TOP, 2 )
 
-		self.m_searchHyperlink1 = wx.adv.HyperlinkCtrl( self.m_statusPanel, wx.ID_ANY, wx.EmptyString, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, wx.adv.HL_DEFAULT_STYLE )
-		bStatusSizer.Add( self.m_searchHyperlink1, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
+		self.m_searchHyperlink1 = wx.adv.HyperlinkCtrl( self.m_statusPanel, wx.ID_ANY, wx.EmptyString, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, wx.adv.HL_ALIGN_LEFT|wx.adv.HL_CONTEXTMENU )
+		bStatusSizer.Add( self.m_searchHyperlink1, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALIGN_LEFT|wx.ALL, 5 )
 
-		self.m_searchHyperlink2 = wx.adv.HyperlinkCtrl( self.m_statusPanel, wx.ID_ANY, wx.EmptyString, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, wx.adv.HL_DEFAULT_STYLE )
-		bStatusSizer.Add( self.m_searchHyperlink2, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
+		self.m_searchHyperlink2 = wx.adv.HyperlinkCtrl( self.m_statusPanel, wx.ID_ANY, wx.EmptyString, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, wx.adv.HL_ALIGN_LEFT|wx.adv.HL_CONTEXTMENU )
+		bStatusSizer.Add( self.m_searchHyperlink2, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALIGN_LEFT|wx.ALL, 5 )
 
-		self.m_searchHyperlink3 = wx.adv.HyperlinkCtrl( self.m_statusPanel, wx.ID_ANY, wx.EmptyString, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, wx.adv.HL_DEFAULT_STYLE )
-		bStatusSizer.Add( self.m_searchHyperlink3, 1, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
+		self.m_searchHyperlink3 = wx.adv.HyperlinkCtrl( self.m_statusPanel, wx.ID_ANY, wx.EmptyString, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, wx.adv.HL_ALIGN_LEFT|wx.adv.HL_CONTEXTMENU )
+		bStatusSizer.Add( self.m_searchHyperlink3, 1, wx.ALIGN_CENTER_VERTICAL|wx.ALIGN_LEFT|wx.ALL, 5 )
 
 		self.m_searchPage = wx.StaticText( self.m_statusPanel, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, 0 )
 		self.m_searchPage.Wrap( -1 )
