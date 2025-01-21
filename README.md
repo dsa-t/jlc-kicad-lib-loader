@@ -1,6 +1,6 @@
 # JLCPCB/LCSC Library Loader
 
-This KiCad plugin allows you to search and download symbols/footprints with 3D models to a local .elibz library that can be read by KiCad.
+This KiCad plugin allows you to search and download symbols/footprints with 3D models to a local .elibz library that can be read by KiCad. Required KiCad version: 8.0.7 or newer.
 
 ![image](https://github.com/user-attachments/assets/1614027b-d7c9-4eb9-8025-56134fccedac)
 
