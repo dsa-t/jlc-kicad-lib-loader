@@ -94,7 +94,16 @@ class EasyEDALibLoaderPlugin(ActionPlugin):
 
         def onDownload( event ):
             dlg.m_log.Clear()
+
+            if not dlg.m_textCtrlParts.GetValue().strip():
+                for sel in dlg.m_searchResultsTree.GetSelections():
+                    dlg.m_textCtrlParts.AppendText(dlg.m_searchResultsTree.GetItemText(sel) + "\n")
+
             components = dlg.m_textCtrlParts.GetValue().splitlines()
+
+            if not components:
+                error( "No parts to download." )
+                return
 
             kiprjmod = os.getenv("KIPRJMOD") or ""
 
