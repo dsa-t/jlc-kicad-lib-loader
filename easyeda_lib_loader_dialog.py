@@ -84,7 +84,10 @@ class EasyEdaLibLoaderDialog ( wx.Dialog ):
 		bStatusSizer.Add( self.m_searchHyperlink2, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALIGN_LEFT|wx.ALL, 5 )
 
 		self.m_searchHyperlink3 = wx.adv.HyperlinkCtrl( self.m_statusPanel, wx.ID_ANY, wx.EmptyString, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, wx.adv.HL_ALIGN_LEFT|wx.adv.HL_CONTEXTMENU )
-		bStatusSizer.Add( self.m_searchHyperlink3, 1, wx.ALIGN_CENTER_VERTICAL|wx.ALIGN_LEFT|wx.ALL, 5 )
+		bStatusSizer.Add( self.m_searchHyperlink3, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALIGN_LEFT|wx.ALL, 5 )
+
+
+		bStatusSizer.Add( ( 0, 0), 1, wx.EXPAND, 5 )
 
 		self.m_searchPage = wx.StaticText( self.m_statusPanel, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, 0 )
 		self.m_searchPage.Wrap( -1 )
@@ -94,12 +97,12 @@ class EasyEdaLibLoaderDialog ( wx.Dialog ):
 		self.m_prevPageBtn = wx.Button( self.m_statusPanel, wx.ID_ANY, u"  <  ", wx.DefaultPosition, wx.DefaultSize, wx.BU_EXACTFIT )
 		self.m_prevPageBtn.Enable( False )
 
-		bStatusSizer.Add( self.m_prevPageBtn, 0, wx.TOP|wx.BOTTOM, 5 )
+		bStatusSizer.Add( self.m_prevPageBtn, 0, wx.ALIGN_CENTER_VERTICAL|wx.BOTTOM|wx.TOP, 5 )
 
 		self.m_nextPageBtn = wx.Button( self.m_statusPanel, wx.ID_ANY, u"  >  ", wx.DefaultPosition, wx.DefaultSize, wx.BU_EXACTFIT )
 		self.m_nextPageBtn.Enable( False )
 
-		bStatusSizer.Add( self.m_nextPageBtn, 0, wx.TOP|wx.BOTTOM|wx.RIGHT, 5 )
+		bStatusSizer.Add( self.m_nextPageBtn, 0, wx.ALIGN_CENTER_VERTICAL|wx.BOTTOM|wx.RIGHT|wx.TOP, 5 )
 
 
 		bSizer18.Add( bStatusSizer, 0, wx.EXPAND, 5 )
