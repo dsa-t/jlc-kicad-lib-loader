@@ -2,7 +2,7 @@
 
 This KiCad plugin allows you to search and download symbols/footprints with 3D models to a local .elibz library that can be read by KiCad.
 
-![image](https://github.com/user-attachments/assets/1614027b-d7c9-4eb9-8025-56134fccedac)
+![image](https://github.com/user-attachments/assets/37e16749-94ea-46e8-88c9-e85164eaf495)
 
 # System support
 
