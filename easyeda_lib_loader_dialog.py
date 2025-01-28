@@ -35,11 +35,9 @@ class EasyEdaLibLoaderDialog ( wx.Dialog ):
 
 		bSizer5 = wx.BoxSizer( wx.HORIZONTAL )
 
-		m_libSourceChoiceChoices = [ u"JLC System", u"JLC Public" ]
+		m_libSourceChoiceChoices = [ u"All Sources", u"JLC System", u"JLC Public" ]
 		self.m_libSourceChoice = wx.Choice( self.m_leftPanel, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, m_libSourceChoiceChoices, 0 )
 		self.m_libSourceChoice.SetSelection( 0 )
-		self.m_libSourceChoice.Hide()
-
 		bSizer5.Add( self.m_libSourceChoice, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
 
 		self.m_textCtrlSearch = wx.TextCtrl( self.m_leftPanel, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, wx.TE_PROCESS_ENTER )
@@ -138,7 +136,7 @@ class EasyEdaLibLoaderDialog ( wx.Dialog ):
 		self.m_panel5 = wx.Panel( self.m_splitter3, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, wx.TAB_TRAVERSAL )
 		bSizer1 = wx.BoxSizer( wx.VERTICAL )
 
-		self.m_staticText1 = wx.StaticText( self.m_panel5, wx.ID_ANY, u"Enter JLCPCB/LCSC codes to download:", wx.DefaultPosition, wx.DefaultSize, 0 )
+		self.m_staticText1 = wx.StaticText( self.m_panel5, wx.ID_ANY, u"Enter JLCPCB/LCSC codes or UUIDs to download:", wx.DefaultPosition, wx.DefaultSize, 0 )
 		self.m_staticText1.Wrap( -1 )
 
 		bSizer1.Add( self.m_staticText1, 0, wx.ALL, 5 )
@@ -182,6 +180,12 @@ class EasyEdaLibLoaderDialog ( wx.Dialog ):
 
 		self.m_debug = wx.CheckBox( self.m_panel6, wx.ID_ANY, u"Debug", wx.DefaultPosition, wx.DefaultSize, 0 )
 		bSizer2.Add( self.m_debug, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALIGN_LEFT|wx.ALL, 5 )
+
+
+		bSizer2.Add( ( 0, 0), 1, wx.EXPAND, 5 )
+
+		self.m_closeButton = wx.Button( self.m_panel6, wx.ID_CANCEL, u"Close dialog", wx.DefaultPosition, wx.DefaultSize, 0 )
+		bSizer2.Add( self.m_closeButton, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
 
 
 		bSizer14.Add( bSizer2, 0, wx.EXPAND, 5 )

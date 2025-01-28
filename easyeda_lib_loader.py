@@ -161,32 +161,42 @@ class EasyEDALibLoaderPlugin(ActionPlugin):
             try:
                 pageSize = 50
 
-                resp = requests.post( "https://pro.easyeda.com/api/v2/devices/search", 
-                                        data={
-                                            "page": page,
-                                            "pageSize": pageSize,
-                                            "wd": words,
-                                            "returnListStyle": "classifyarr"
-                                            } )
+                reqData={
+                    "page": page,
+                    "pageSize": pageSize,
+                    "wd": words,
+                    "returnListStyle": "classifyarr"
+                }
+
+                if facet:
+                    reqData |= {
+                        "uid": facet,
+                        "path": facet,
+                    }
+
+                resp = requests.post( "https://pro.easyeda.com/api/v2/devices/search", data=reqData )
                 resp.raise_for_status()
                 found = resp.json()
+
+                debug(json.dumps(found, indent=4))
 
                 if not found.get("success") or not found.get("result"):
                     raise Exception(f"Unable to search: {found}")
 
-                totalInFacet = found["result"]["facets"].get(facet, 0)
+                totalDevices = sum(found["result"]["facets"].values())
 
-                for entry in found["result"]["lists"][facet]:
-                    addItem([
-                        entry["product_code"],
-                        entry["display_title"],
-                        entry["attributes"]["Manufacturer"],
-                        entry["symbol"]["display_title"],
-                        entry["footprint"]["display_title"]
-                    ])
+                for facet in found["result"]["lists"].values():
+                    for entry in facet:
+                        addItem([
+                            entry.get("product_code", entry["uuid"]),
+                            entry["display_title"],
+                            entry["attributes"].get("Manufacturer", ""),
+                            entry["symbol"]["display_title"] if entry.get("symbol") else "",
+                            entry["footprint"]["display_title"] if entry.get("footprint") else ""
+                        ])
 
                 curPage = int(found['result']['page'])
-                totalPages = math.ceil(totalInFacet / pageSize)
+                totalPages = math.ceil(totalDevices / pageSize)
 
                 if(curPage > 1):
                     wx.CallAfter(dlg.m_prevPageBtn.Enable)
@@ -194,7 +204,7 @@ class EasyEDALibLoaderPlugin(ActionPlugin):
                 if(curPage < totalPages):
                     wx.CallAfter(dlg.m_nextPageBtn.Enable)
 
-                setStatus(f"{totalInFacet} parts.")
+                setStatus(f"{totalDevices} parts.")
                 setPageText(f"Page {curPage}/{totalPages}")
 
             except KeyboardInterrupt:
@@ -211,7 +221,7 @@ class EasyEDALibLoaderPlugin(ActionPlugin):
                 interrupt_thread(self.searchThread)
                 self.searchThread.join()
 
-            facet = ["lcsc", "user"][facetId]
+            facet = [None, "lcsc", "user"][facetId]
 
             self.searchThread = Thread(target = searchFn, 
                                  daemon=True, 
@@ -239,25 +249,109 @@ class EasyEDALibLoaderPlugin(ActionPlugin):
         def onSearchItemSelected( event ):
             itemCode = dlg.m_searchResultsTree.GetItemText(event.GetItem())
 
-            dlg.m_searchHyperlink1.SetLabelText( f"{itemCode} Preview" )
-            dlg.m_searchHyperlink1.SetURL( f"https://jlcpcb.com/user-center/lcsvg/svg.html?code={itemCode}" )
+            if itemCode.startswith("C"):
+                dlg.m_searchHyperlink1.SetLabelText( f"{itemCode} Preview" )
+                dlg.m_searchHyperlink1.SetURL( f"https://jlcpcb.com/user-center/lcsvg/svg.html?code={itemCode}" )
+                dlg.m_searchHyperlink1.Show()
 
-            dlg.m_searchHyperlink2.SetLabelText( f"JLCPCB" )
-            dlg.m_searchHyperlink2.SetURL( f"https://jlcpcb.com/partdetail/{itemCode}" )
+                dlg.m_searchHyperlink2.SetLabelText( f"JLCPCB" )
+                dlg.m_searchHyperlink2.SetURL( f"https://jlcpcb.com/partdetail/{itemCode}" )
+                dlg.m_searchHyperlink2.Show()
 
-            dlg.m_searchHyperlink3.SetLabelText( f"LCSC" )
-            dlg.m_searchHyperlink3.SetURL( f"https://www.lcsc.com/product-detail/{itemCode}.html" )
+                dlg.m_searchHyperlink3.SetLabelText( f"LCSC" )
+                dlg.m_searchHyperlink3.SetURL( f"https://www.lcsc.com/product-detail/{itemCode}.html" )
+                dlg.m_searchHyperlink3.Show()
+            else:
+                easyedaLink = None
+
+                try:
+                    dev_info = requests.get(f"https://pro.easyeda.com/api/devices/{itemCode}")
+                    dev_info.raise_for_status()
+                    debug("device info: " + json.dumps(dev_info.json(), indent=4))
+                    device = dev_info.json()["result"]
+                    attributes = device['attributes']
+
+                    if attributes.get('Symbol') or attributes.get('Footprint'):
+                        # https://pro.easyeda.com/editor#tab=*!{sym_uuid}(device){dev_uuid}|!{fp_uuid}(device){dev_uuid}
+                        tabList = []
+
+                        if attributes.get('Symbol'):
+                            tabList.append(f"!{attributes['Symbol']}(device){itemCode}")
+
+                        if attributes.get('Footprint'):
+                            tabList.append(f"!{attributes['Footprint']}(device){itemCode}")
+
+                        easyedaLink = f"https://pro.easyeda.com/editor#tab=*{'|'.join(tabList)}"
+                except Exception as e:
+                    pass
+
+                if easyedaLink:
+                    dlg.m_searchHyperlink1.SetLabelText( f"Open in EasyEDA Pro" )
+                    dlg.m_searchHyperlink1.SetURL( easyedaLink )
+                    dlg.m_searchHyperlink1.Show()
+                else:
+                    dlg.m_searchHyperlink1.Hide()
+
+                dlg.m_searchHyperlink2.Hide()
+                dlg.m_searchHyperlink3.Hide()
 
             dlg.m_statusPanel.Layout()
 
             global wx_html2_available
             if wx_html2_available:
                 self.webView.Hide()
-                self.webView.LoadURL( f"https://jlcpcb.com/user-center/lcsvg/svg.html?code={itemCode}" )
-                self.webView.SetZoomFactor(0.8)
+
+                if itemCode.startswith("C"):
+                    self.webView.LoadURL( f"https://jlcpcb.com/user-center/lcsvg/svg.html?code={itemCode}" )
+                    self.webView.SetZoomFactor(0.8)
+                else:
+                    table_rows = ''.join(
+                        f"""<tr>
+                            <td><b>{key}</b></td>
+                            <td>
+                            {value if not (isinstance(value, str) and value.startswith(('http://', 'https://'))) else f'<a href="{value}" target="_blank">{value}</a>'}
+                            </td>
+                        </tr>"""
+                        for key, value in attributes.items()
+                    )
+                    
+                    style = """
+                        body {
+                            font-family: sans-serif;
+                        }
+                        table {
+                            border:1px solid #CCC;
+                            border-collapse:collapse;
+                        }
+                        td {
+                            border:1px solid #CCC;
+                            padding: 2px;
+                        }
+                    """
+
+                    html_content = f"""
+                    <html>
+                    <head>
+                        <style>
+                        {style}
+                        </style>
+                    </head>
+                    <body>
+                        <p><b>Device UUID: {itemCode}</b></p>
+                        <table>
+                            {table_rows}
+                        </table>
+                    </body>
+                    </html>
+                    """
+                    self.webView.SetPage(html_content, "")
+                    self.webView.SetZoomFactor(1.0)
 
         def onWebviewLoaded( event ):
             self.webView.Show()
+
+        def onWebviewNewWindow( event ):
+            wx.LaunchDefaultBrowser( event.GetURL() )
 
         def onClose( event ):
             if self.searchThread:
@@ -270,7 +364,7 @@ class EasyEDALibLoaderPlugin(ActionPlugin):
                 
             dlg.Destroy();
 
-        dlg.m_searchResultsTree.AppendColumn("Code", width=wx.COL_WIDTH_AUTOSIZE, flags=wx.COL_RESIZABLE | wx.COL_SORTABLE )
+        dlg.m_searchResultsTree.AppendColumn("Code/UUID", width=wx.COL_WIDTH_AUTOSIZE, flags=wx.COL_RESIZABLE | wx.COL_SORTABLE )
         dlg.m_searchResultsTree.AppendColumn("Name", width=wx.COL_WIDTH_AUTOSIZE, flags=wx.COL_RESIZABLE | wx.COL_SORTABLE)
         dlg.m_searchResultsTree.AppendColumn("Manufacturer", width=wx.COL_WIDTH_AUTOSIZE, flags=wx.COL_RESIZABLE | wx.COL_SORTABLE)
         dlg.m_searchResultsTree.AppendColumn("Symbol", width=wx.COL_WIDTH_AUTOSIZE, flags=wx.COL_RESIZABLE | wx.COL_SORTABLE)
@@ -283,6 +377,7 @@ class EasyEDALibLoaderPlugin(ActionPlugin):
             try:
                 self.webView = wx.html2.WebView.New(dlg.m_webViewPanel)
                 self.webView.Bind(wx.html2.EVT_WEBVIEW_LOADED, onWebviewLoaded)
+                self.webView.Bind(wx.html2.EVT_WEBVIEW_NEWWINDOW, onWebviewNewWindow)
             except NotImplementedError as err:
                 self.webView = wx.StaticText(dlg.m_webViewPanel, style=wx.ALIGN_CENTER_VERTICAL|wx.ALIGN_CENTRE_HORIZONTAL)
                 self.webView.SetLabel("Preview is not supported in this wxPython environment.")
@@ -306,6 +401,7 @@ class EasyEDALibLoaderPlugin(ActionPlugin):
         dlg.m_prevPageBtn.Bind(wx.EVT_BUTTON, onPrevPage)
         dlg.m_nextPageBtn.Bind(wx.EVT_BUTTON, onNextPage)
         dlg.m_textCtrlSearch.Bind(wx.EVT_TEXT_ENTER, onSearch)
+        dlg.m_libSourceChoice.Bind(wx.EVT_CHOICE, onSearch)
         dlg.m_debug.Bind(wx.EVT_CHECKBOX, onDebugCheckbox)
 
         dlg.m_textCtrlSearch.SetFocus()

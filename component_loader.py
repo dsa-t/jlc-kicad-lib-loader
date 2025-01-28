@@ -15,6 +15,12 @@ from pcbnew import *
 
 MODELS_DIR = "EASYEDA_MODELS"
 
+# UUID strings can be in the format <uuid>|<owner_uuid>. This function gets the <uuid> part
+def getUuidFirstPart(uuid):
+    if not uuid:
+        return None
+    return uuid.split("|")[0]
+
 class ComponentLoader():
     def __init__(self, kiprjmod, target_path, target_name, progress: Callable[[int, int], None]):
         self.kiprjmod = kiprjmod
@@ -31,34 +37,50 @@ class ComponentLoader():
             self.progress(100, 100)
         except Exception as e:
             traceback.print_exc()
-            error(f"Failed to download components: {e}")
+            error(f"Failed to download components: {traceback.format_exc()}")
 
     def downloadSymFp(self, components):
         info(f"Fetching info...")
 
-        # Find device UUIDs from codes
-        resp = requests.post( "https://pro.easyeda.com/api/v2/devices/searchByCodes", data={"codes[]": components} )
-        resp.raise_for_status()
-        found = resp.json()
+        # Separate components into code-based and direct UUIDs
+        code_components = []
+        direct_uuids = []
 
-        debug("searchByCodes: " + json.dumps( found, indent=4))
+        for comp in components:
+            if comp.startswith("C"):
+                code_components.append(comp)
+            else:
+                direct_uuids.append(comp)
 
-        if not found.get("success") or not found.get("result"):
-            raise Exception(f"Unabled to fetch device info: {found}")
-        
-        # Fetch devices by device UUIDs
         fetched_devices = {}
 
+        # Fetch UUIDs from code-based components
+        if code_components:
+            resp = requests.post("https://pro.easyeda.com/api/v2/devices/searchByCodes", data={"codes[]": code_components})
+            resp.raise_for_status()
+            found = resp.json()
+
+            debug("searchByCodes: " + json.dumps(found, indent=4))
+
+            if not found.get("success") or not found.get("result"):
+                raise Exception(f"Unable to fetch device info: {found}")
+
+            # Append fetched UUIDs to direct_uuids
+            for entry in found["result"]:
+                direct_uuids.append(entry['uuid'])
+
+        # Fetch device info by UUID
         def fetch_device_info(dev_uuid):
             dev_info = requests.get(f"https://pro.easyeda.com/api/devices/{dev_uuid}")
             dev_info.raise_for_status()
+
+            debug("device info: " + json.dumps(dev_info.json(), indent=4))
 
             device = dev_info.json()["result"]
             fetched_devices[device["uuid"]] = device
 
         with concurrent.futures.ThreadPoolExecutor() as executor:
-            for entry in found["result"]:
-                dev_uuid = entry['uuid']
+            for dev_uuid in direct_uuids:
                 executor.submit(fetch_device_info, dev_uuid)
 
         # Collect symbol/footprint/3D model UUIDs to fetch
@@ -69,15 +91,17 @@ class ComponentLoader():
 
         all_uuids = set()
         for entry in fetched_devices.values():
-            all_uuids.add(entry['attributes']['Symbol'])
-            uuid_to_obj_map[entry['attributes']['Symbol']] = fetched_symbols
+            if entry['attributes'].get('Symbol'):
+                all_uuids.add(entry['attributes']['Symbol'])
+                uuid_to_obj_map[entry['attributes']['Symbol']] = fetched_symbols
 
-            all_uuids.add(entry['attributes']['Footprint'])
-            uuid_to_obj_map[entry['attributes']['Footprint']] = fetched_footprints
+            if entry['attributes'].get('Footprint'):
+                all_uuids.add(entry['attributes']['Footprint'])
+                uuid_to_obj_map[entry['attributes']['Footprint']] = fetched_footprints
 
             if entry['attributes'].get('3D Model'):
-                all_uuids.add(entry['attributes']['3D Model'])
-                uuid_to_obj_map[entry['attributes']['3D Model']] = fetched_3dmodels
+                all_uuids.add(getUuidFirstPart(entry['attributes']['3D Model']))
+                uuid_to_obj_map[getUuidFirstPart(entry['attributes']['3D Model'])] = fetched_3dmodels
 
         # Fetch symbols/footprints/3D models
         resp = requests.post( "https://pro.easyeda.com/api/v2/components/searchByIds", json={"uuids": list(all_uuids)} )
@@ -90,8 +114,11 @@ class ComponentLoader():
 
         # Set symbol/footprint type fields
         for device in fetched_devices.values():
-            fetched_symbols[device["attributes"]["Symbol"]]["type"] = device["symbol_type"]
-            fetched_footprints[device["attributes"]["Footprint"]]["type"] = device["footprint_type"]
+            if device['attributes'].get('Symbol'):
+                fetched_symbols[device["attributes"]["Symbol"]]["type"] = device["symbol_type"]
+
+            if device['attributes'].get('Footprint'):
+                fetched_footprints[device["attributes"]["Footprint"]]["type"] = device["footprint_type"]
 
         # Extract dataStr
         footprint_data_str = {}
@@ -148,7 +175,8 @@ class ComponentLoader():
             for sym_uuid, ds in symbol_data_str.items():
                 zf.writestr(f"SYMBOL/{sym_uuid}.esym", ds)
 
-        info(f"Library saved: {zip_filename}")
+        info( "*****************************" )
+        info(f"Downloaded {len(fetched_devices)} devices, {len(fetched_symbols)} symbols, {len(fetched_footprints)} footprints and added to library: {zip_filename}")
         return libDeviceFile, fetched_3dmodels
 
     def downloadModels(self, libDeviceFile, fetched_3dmodels):
@@ -158,30 +186,32 @@ class ComponentLoader():
         self.statDownloaded = 0
         self.statFailed = 0
 
+        info( "*****************************" )
         info(f"Loading 3D models...")
         self.progress(0, 100)
 
         uuidToTargetFileMap = {}
-        uuidsToDimensions = {}
+        uuidsToTransform = {}
 
-        debug(json.dumps(fetched_3dmodels, indent=4))
+        debug("fetched_3dmodels: " + json.dumps(fetched_3dmodels, indent=4))
+        debug("libDeviceFile: " + json.dumps(libDeviceFile, indent=4))
 
         for device in libDeviceFile["devices"].values():
             try:
-                modelUuid = device["attributes"].get("3D Model")
+                modelUuid = getUuidFirstPart(device["attributes"].get("3D Model"))
 
                 if not modelUuid or modelUuid not in fetched_3dmodels:
-                    info("No model for device '%s', footprint '%s'" % (device.get("product_code"), device.get("footprint").get("display_title")))
+                    info("No model for device '%s', footprint '%s'"
+                         % (device.get("product_code", device.get("uuid")), 
+                            device.get("footprint").get("display_title") if device.get("footprint") else "None"))
                     continue
-
-                debug("Device: " + json.dumps(device, indent=4))
 
                 modelTitle = device["attributes"]["3D Model Title"]
                 modelTransform = device["attributes"].get("3D Model Transform", "")
 
                 directUuid = json.loads(fetched_3dmodels[modelUuid]["dataStr"])["model"]
 
-                uuidsToDimensions[directUuid] = [float(x) for x in modelTransform.split(",")]
+                uuidsToTransform[directUuid] = [float(x) for x in modelTransform.split(",")]
 
                 easyEdaFilename = os.path.join(self.kiprjmod, MODELS_DIR, modelTitle + ".step")
                 easyEdaFilename = os.path.normpath(easyEdaFilename)
@@ -191,7 +221,7 @@ class ComponentLoader():
                 return
             except Exception as e:
                 traceback.print_exc()
-                info("Cannot get model for device '%s': %s" % (device.get("product_code"), str(e)))
+                info("Cannot get model for device '%s': %s" % (device.get("product_code"), traceback.format_exc()))
                 continue
 
         with concurrent.futures.ThreadPoolExecutor(1) as texecutor:
@@ -212,10 +242,10 @@ class ComponentLoader():
                 bbox: UTILS_BOX3D = model.GetBoundingBox()
 
                 try:
-                    if directUuid in uuidsToDimensions:
+                    if directUuid in uuidsToTransform:
                         # Convert mils to mm
-                        fitXmm = uuidsToDimensions[directUuid][0] / 39.37
-                        fitYmm = uuidsToDimensions[directUuid][1] / 39.37
+                        fitXmm = uuidsToTransform[directUuid][0] / 39.37
+                        fitYmm = uuidsToTransform[directUuid][1] / 39.37
 
                         bsize: VECTOR3D = bbox.GetSize()
                         scaleFactorX = fitXmm / bsize.x;
