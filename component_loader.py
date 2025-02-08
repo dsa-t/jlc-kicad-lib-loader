@@ -104,13 +104,22 @@ class ComponentLoader():
                 uuid_to_obj_map[getUuidFirstPart(entry['attributes']['3D Model'])] = fetched_3dmodels
 
         # Fetch symbols/footprints/3D models
-        resp = requests.post( "https://pro.easyeda.com/api/v2/components/searchByIds", json={"uuids": list(all_uuids)} )
+        def fetch_component(uuid):
+            url = f"https://pro.easyeda.com/api/v2/components/{uuid}"
+            r = requests.get(url)
+            r.raise_for_status()
+            return r.json()["result"]
 
-        debug("all_uuids: " + json.dumps( list(all_uuids), indent=4))
-        debug("searchByIds: " + json.dumps( resp.json(), indent=4))
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            futures = {executor.submit(fetch_component, uuid): uuid for uuid in all_uuids}
+            for future in concurrent.futures.as_completed(futures):
+                try:
+                    compData = future.result()
+                    debug(f"Fetched component {json.dumps(compData, indent=4)}")
 
-        for entry in resp.json()["result"]:
-            uuid_to_obj_map[entry["uuid"]][entry["uuid"]] = entry
+                    uuid_to_obj_map[compData["uuid"]][compData["uuid"]] = compData
+                except Exception as e:
+                    error(f"Failed to fetch component for uuid {futures[future]}: {e}")
 
         # Set symbol/footprint type fields
         for device in fetched_devices.values():
@@ -209,7 +218,8 @@ class ComponentLoader():
                 modelTitle = device["attributes"]["3D Model Title"]
                 modelTransform = device["attributes"].get("3D Model Transform", "")
 
-                directUuid = json.loads(fetched_3dmodels[modelUuid]["dataStr"])["model"]
+                dataStr = fetched_3dmodels[modelUuid].get("dataStr")
+                directUuid = json.loads(dataStr)["model"]
 
                 uuidsToTransform[directUuid] = [float(x) for x in modelTransform.split(",")]
 
