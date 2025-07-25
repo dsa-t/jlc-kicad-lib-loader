@@ -21,6 +21,42 @@ def getUuidFirstPart(uuid):
         return None
     return uuid.split("|")[0]
 
+# Extract dataStr from component data. If dataStr is not available, try to decrypt and decompress the data from dataStrId URL.
+def extractDataStr(component_data):
+    if not component_data:
+        return None
+        
+    # Try direct dataStr first
+    dataStr = component_data.get("dataStr")
+    if dataStr:
+        return dataStr
+        
+    # Try dataStrId if dataStr not available
+    dataStrId = component_data.get("dataStrId")
+    if dataStrId:
+        try:
+            keyHex = component_data.get("key")
+            ivHex = component_data.get("iv")
+
+            debug("dataStrId key: " + keyHex)
+            debug("dataStrId iv: " + ivHex)
+            
+            dataStrResp = requests.get(dataStrId)
+            dataStrResp.raise_for_status()
+
+            debug("dataStrId encrypted content: " + dataStrResp.content.hex())
+            
+            from . import decryptor
+            decryptedStr = decryptor.decryptDataStrIdData(dataStrResp.content, keyHex, ivHex)
+
+            debug("dataStrId decrypted content: " + decryptedStr)
+
+            return decryptedStr
+        except Exception as e:
+            info(f"Failed to fetch/decrypt dataStrId: {e}")
+            
+    return None
+
 class ComponentLoader():
     def __init__(self, kiprjmod, target_path, target_name, progress: Callable[[int, int], None]):
         self.kiprjmod = kiprjmod
@@ -135,15 +171,19 @@ class ComponentLoader():
 
         # Separate dataStr for footprints
         for f_uuid, f_data in fetched_footprints.items():
-            ds = f_data.pop("dataStr", None)
+            ds = extractDataStr(f_data)
             if ds:
                 footprint_data_str[f_uuid] = ds
 
+            f_data.pop("dataStr", None) # Remove the dataStr field if exists
+
         # Separate dataStr for symbols
         for s_uuid, s_data in fetched_symbols.items():
-            ds = s_data.pop("dataStr", None)
+            ds = extractDataStr(s_data)
             if ds:
                 symbol_data_str[s_uuid] = ds
+
+            s_data.pop("dataStr", None) # Remove the dataStr field if exists
 
         libDeviceFile = {
             "devices": fetched_devices,
@@ -218,8 +258,15 @@ class ComponentLoader():
                 modelTitle = device["attributes"]["3D Model Title"]
                 modelTransform = device["attributes"].get("3D Model Transform", "")
 
-                dataStr = fetched_3dmodels[modelUuid].get("dataStr")
-                directUuid = json.loads(dataStr)["model"]
+                dataStr = extractDataStr(fetched_3dmodels[modelUuid])
+
+                if dataStr:
+                    directUuid = json.loads(dataStr)["model"]
+                else:
+                    info("Unable to extract model for device '%s', footprint '%s'"
+                         % (device.get("product_code", device.get("uuid")), 
+                            device.get("footprint").get("display_title") if device.get("footprint") else "None"))
+                    continue
 
                 uuidsToTransform[directUuid] = [float(x) for x in modelTransform.split(",")]
 
@@ -231,7 +278,7 @@ class ComponentLoader():
                 return
             except Exception as e:
                 traceback.print_exc()
-                info("Cannot get model for device '%s': %s" % (device.get("product_code"), traceback.format_exc()))
+                info("Cannot get model for device '%s': %s" % (device.get("product_code", device.get("uuid")), str(e)))
                 continue
 
         with concurrent.futures.ThreadPoolExecutor(1) as texecutor:
@@ -287,6 +334,14 @@ class ComponentLoader():
 
                 debug( "Saving STEP model %s" % (file_name) )
                 model.SaveSTEP( kfilePath )
+
+                # Delete the temporary JLC file after successful conversion
+                try:
+                    if os.path.exists(jfilePath):
+                        os.remove(jfilePath)
+                        debug(f"Deleted temporary file {jfilePath}")
+                except Exception as e:
+                    info(f"Failed to delete temporary file {jfilePath}: {str(e)}")
 
             with concurrent.futures.ThreadPoolExecutor(8) as dexecutor: 
                 def downloadStep(dnlTaskArgs):
