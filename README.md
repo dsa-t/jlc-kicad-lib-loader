@@ -20,6 +20,36 @@ This KiCad plugin allows you to search and download symbols/footprints with 3D m
 
    ![image](https://github.com/user-attachments/assets/debae118-1292-498a-81f2-29fdc2cf455d)
 
+## To support importing encrypted data
+
+### Windows
+
+3. Open "KiCad x.x Command Prompt":
+
+   ![image](https://github.com/user-attachments/assets/9975de9a-d1cc-4ee7-94b8-11fb492b8b77)
+
+4. Execute `pip install pycryptodome`
+
+   ![image](https://github.com/user-attachments/assets/1abcd9ed-7358-4508-a9fb-75d2bc9bb2a1)
+
+### Debian/Ubuntu
+
+3. ```
+   sudo apt install python3-pycryptodome
+   ```
+
+### Flatpak
+
+3. ```
+   flatpak run --command=pip org.kicad.KiCad install pycryptodome
+   ```
+
+### Other OSes
+
+3. ```
+   pip install pycryptodome
+   ```
+
 # Library setup
 
 Add the .elibz library to your Symbol/Footprint library tables:
