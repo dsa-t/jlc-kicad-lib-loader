@@ -1,6 +1,6 @@
 #!/bin/sh
 
-VERSION="1.0.4"
+VERSION="1.0.5"
 
 echo "Clean up old files"
 rm -rf .out/archive
