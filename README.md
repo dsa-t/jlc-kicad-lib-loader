@@ -52,14 +52,21 @@ This KiCad plugin allows you to search and download symbols/footprints with 3D m
 
 # Library setup
 
-Add the .elibz library to your Symbol/Footprint library tables:
+The plugin now automatically manages library configuration:
+
+- **Library Name Storage**: The library name is saved in a `jlc-kicad-lib-loader.ini` file in your project directory and will be remembered for future use.
+- **Automatic Library Table Addition**: When downloading components, if the library is not found in your project-specific Symbol/Footprint library tables, the plugin will prompt you to add it automatically.
+
+## Manual Library Setup (if needed)
+
+If you need to manually add the .elibz library to your Symbol/Footprint library tables:
 
 ![image](https://github.com/user-attachments/assets/45583737-6747-4aa8-975c-2a90a6f192d6)
 
-## Symbol library table:
+### Symbol library table:
 
 ![image](https://github.com/user-attachments/assets/a3ff3856-5637-46da-8349-0b965986680f)
 
-## Footprint library table:
+### Footprint library table:
 
 ![image](https://github.com/user-attachments/assets/8512a77f-95e5-4d4f-bba6-4a2b5660e218)

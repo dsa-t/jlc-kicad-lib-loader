@@ -22,6 +22,7 @@ import wx.dataview
 
 from .component_loader import *
 from .easyeda_lib_loader_dialog import EasyEdaLibLoaderDialog
+from .config_manager import ConfigManager, LibraryTableManager
 
 from pcbnew import *
 import ctypes
@@ -84,6 +85,15 @@ class EasyEDALibLoaderPlugin(ActionPlugin):
         FORMAT = "%(levelname)s: %(message)s"
         handler.setFormatter(logging.Formatter(FORMAT))
         logging.getLogger().setLevel(level=logging.INFO)
+        
+        # Get KIPRJMOD early to initialize config
+        kiprjmod = os.getenv("KIPRJMOD") or ""
+        config_manager = None
+        library_manager = None
+        
+        if kiprjmod:
+            config_manager = ConfigManager(kiprjmod)
+            library_manager = LibraryTableManager(kiprjmod)
 
         def progressHandler( current, total ):
             wx.CallAfter(dlg.m_progress.SetRange, total)
@@ -119,6 +129,14 @@ class EasyEDALibLoaderPlugin(ActionPlugin):
                 target_path = os.path.join(kiprjmod, lib_field)
 
             target_name = os.path.basename(target_path);
+            
+            # Save library name to config
+            if config_manager:
+                config_manager.set_library_name(lib_field)
+            
+            # Check if library exists in tables and prompt to add if not
+            if library_manager:
+                library_manager.prompt_add_library(dlg, target_name, target_path)
 
             def threadedFn():
                 loader = ComponentLoader(kiprjmod=kiprjmod, target_path=target_path, target_name=target_name, progress=progressHandler)
@@ -370,7 +388,11 @@ class EasyEDALibLoaderPlugin(ActionPlugin):
         dlg.m_searchResultsTree.AppendColumn("Symbol", width=wx.COL_WIDTH_AUTOSIZE, flags=wx.COL_RESIZABLE | wx.COL_SORTABLE)
         dlg.m_searchResultsTree.AppendColumn("Footprint", width=wx.COL_WIDTH_AUTOSIZE, flags=wx.COL_RESIZABLE | wx.COL_SORTABLE)
 
-        dlg.m_textCtrlOutLibName.SetValue("EasyEDA_Lib");
+        # Load library name from config or use default
+        default_lib_name = "EasyEDA_Lib"
+        if config_manager:
+            default_lib_name = config_manager.get_library_name(default_lib_name)
+        dlg.m_textCtrlOutLibName.SetValue(default_lib_name);
 
         global wx_html2_available
         if wx_html2_available:
