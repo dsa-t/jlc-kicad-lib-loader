@@ -405,4 +405,4 @@ class EasyEDALibLoaderPlugin(ActionPlugin):
         dlg.m_debug.Bind(wx.EVT_CHECKBOX, onDebugCheckbox)
 
         dlg.m_textCtrlSearch.SetFocus()
-        dlg.Show()
+        dlg.ShowModal()
