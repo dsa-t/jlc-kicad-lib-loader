@@ -62,23 +62,16 @@ The path to Python KiCad:
 
 ```
 
-Check versions
-
-```
-KPY="/Applications/KiCad/KiCad.app/Contents/Frameworks/Python.framework/Versions/Current/bin/python3"
-"$KPY" -V
-```
-
 Installing pycryptodome
 
 ```
-pip install pycryptodome   
+"$KPY" -m pip install --user pycryptodome
 ```
 Checking the result
 ```
 "$KPY" -c "from Crypto.Cipher import AES; print('pycryptodome OK')"
 ```
-Если вывод:
+If you see:
 ```
 pycryptodome OK
 ```

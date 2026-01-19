@@ -19,8 +19,6 @@ import logging
 import wx
 from typing import Optional
 
-# import ssl
-# ssl._create_default_https_context = ssl.create_default_context
 
 wx_html2_available = True
 try: 
