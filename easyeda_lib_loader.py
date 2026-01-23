@@ -76,9 +76,7 @@ class WxTextCtrlHandler(logging.Handler):
         wx.CallAfter(self.ctrl.AppendText, s)
 
 class EasyEDALibLoaderPlugin(ActionPlugin):
-    # downloadThread: Thread | None = None
     downloadThread: Optional[Thread] = None
-    # searchThread: Thread | None = None
     searchThread: Optional[Thread] = None
     searchPage = 1
     components = []
