@@ -65,6 +65,8 @@ The path to Python KiCad:
 Installing pycryptodome
 
 ```
+KPY="/Applications/KiCad/KiCad.app/Contents/Frameworks/Python.framework/Versions/Current/bin/python3"
+"$KPY" -V
 "$KPY" -m pip install --user pycryptodome
 ```
 Checking the result
