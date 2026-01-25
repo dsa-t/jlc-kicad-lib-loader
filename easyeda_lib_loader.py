@@ -1,4 +1,14 @@
 #!/usr/bin/env python
+from __future__ import annotations
+
+# --- SSL fix for macOS KiCad Python ---
+try:
+    import certifi
+    import os
+    os.environ.setdefault("SSL_CERT_FILE", certifi.where())
+except Exception:
+    pass
+# -------------------------------------
 
 import math
 import sys
@@ -7,6 +17,8 @@ import traceback
 import requests
 import logging
 import wx
+from typing import Optional
+
 
 wx_html2_available = True
 try: 
@@ -64,8 +76,8 @@ class WxTextCtrlHandler(logging.Handler):
         wx.CallAfter(self.ctrl.AppendText, s)
 
 class EasyEDALibLoaderPlugin(ActionPlugin):
-    downloadThread: Thread | None = None
-    searchThread: Thread | None = None
+    downloadThread: Optional[Thread] = None
+    searchThread: Optional[Thread] = None
     searchPage = 1
     components = []
     

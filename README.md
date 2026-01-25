@@ -34,21 +34,69 @@ This KiCad plugin allows you to search and download symbols/footprints with 3D m
 
 ### Debian/Ubuntu
 
-3. ```
-   sudo apt install python3-pycryptodome
-   ```
+```
+sudo apt install python3-pycryptodome
+```
 
 ### Flatpak
 
-3. ```
-   flatpak run --command=pip org.kicad.KiCad install pycryptodome
-   ```
+```
+flatpak run --command=pip org.kicad.KiCad install pycryptodome
+```
 
 ### Other OSes
 
-3. ```
-   pip install pycryptodome
-   ```
+```
+pip install pycryptodome
+```
+
+### Mac OS
+
+KiCad does NOT use the system Python (/usr/bin/python3).
+It comes with a built-in Python located inside the application.
+
+The path to Python KiCad:
+
+```
+/Applications/KiCad/KiCad.app/Contents/Frameworks/Python.framework/Versions/Current/bin/python3
+
+```
+
+Installing pycryptodome
+
+```
+KPY="/Applications/KiCad/KiCad.app/Contents/Frameworks/Python.framework/Versions/Current/bin/python3"
+"$KPY" -V
+"$KPY" -m pip install --user pycryptodome
+```
+Checking the result
+```
+"$KPY" -c "from Crypto.Cipher import AES; print('pycryptodome OK')"
+```
+If you see:
+```
+pycryptodome OK
+```
+everything is set up correctly.
+
+#### Installing certifi
+
+On macOS, Python inside KiCad does not see the system certificate store, which causes the following error:
+
+```
+SSL: CERTIFICATE_VERIFY_FAILED
+```
+Installing certifi
+```
+"$KPY" -m pip install --user --upgrade certifi
+```
+
+Check:
+```
+"$KPY" -c "import certifi; print(certifi.where())"
+```
+
+
 
 # Library setup
 
