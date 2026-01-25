@@ -10,7 +10,7 @@ This KiCad plugin allows you to search and download symbols/footprints with 3D m
 - **Windows**: version 10 or newer with normal KiCad installation.
 - **Ubuntu**: install KiCad from PPA. To make the preview work, install `python3-wxgtk-webview4.0`.
 - **Flatpak**: works but preview is not available due to missing webkitgtk2.
-- **macOS**: not tested
+- **macOS**: works (Python 3.9+)
 
 # Installation
 
