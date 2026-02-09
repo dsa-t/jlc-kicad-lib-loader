@@ -55,4 +55,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: pcm-archive
-          path: ./.out/*.zip
+          path: .out/*.zip
+          include-hidden-files: true
