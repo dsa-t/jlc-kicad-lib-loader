@@ -21,48 +21,13 @@ def getUuidFirstPart(uuid):
         return None
     return uuid.split("|")[0]
 
-# Extract dataStr from component data. If dataStr is not available, try to decrypt and decompress the data from dataStrId URL.
-def extractDataStr(component_data):
-    if not component_data:
-        return None
-        
-    # Try direct dataStr first
-    dataStr = component_data.get("dataStr")
-    if dataStr:
-        return dataStr
-        
-    # Try dataStrId if dataStr not available
-    dataStrId = component_data.get("dataStrId")
-    if dataStrId:
-        try:
-            keyHex = component_data.get("key")
-            ivHex = component_data.get("iv")
-
-            debug("dataStrId key: " + keyHex)
-            debug("dataStrId iv: " + ivHex)
-            
-            dataStrResp = requests.get(dataStrId)
-            dataStrResp.raise_for_status()
-
-            debug("dataStrId encrypted content: " + dataStrResp.content.hex())
-            
-            from . import decryptor
-            decryptedStr = decryptor.decryptDataStrIdData(dataStrResp.content, keyHex, ivHex)
-
-            debug("dataStrId decrypted content: " + decryptedStr)
-
-            return decryptedStr
-        except Exception as e:
-            info(f"Failed to fetch/decrypt dataStrId: {e}")
-            
-    return None
-
 class ComponentLoader():
-    def __init__(self, kiprjmod, target_path, target_name, progress: Callable[[int, int], None]):
+    def __init__(self, kiprjmod, target_path, target_name, progress: Callable[[int, int], None], session: requests.Session):
         self.kiprjmod = kiprjmod
         self.target_path = target_path
         self.target_name = target_name
         self.progress = progress
+        self.session = session
 
     def downloadAll(self, components):
         self.progress(0, 100)
@@ -92,7 +57,7 @@ class ComponentLoader():
 
         # Fetch UUIDs from code-based components
         if code_components:
-            resp = requests.post("https://pro.easyeda.com/api/v2/devices/searchByCodes", data={"codes[]": code_components})
+            resp = self.session.post("https://pro.easyeda.com/api/v2/devices/searchByCodes", data={"codes[]": code_components})
             resp.raise_for_status()
             found = resp.json()
 
@@ -107,7 +72,7 @@ class ComponentLoader():
 
         # Fetch device info by UUID
         def fetch_device_info(dev_uuid):
-            dev_info = requests.get(f"https://pro.easyeda.com/api/devices/{dev_uuid}")
+            dev_info = self.session.get(f"https://pro.easyeda.com/api/devices/{dev_uuid}")
             dev_info.raise_for_status()
 
             debug("device info: " + json.dumps(dev_info.json(), indent=4))
@@ -142,7 +107,7 @@ class ComponentLoader():
         # Fetch symbols/footprints/3D models
         def fetch_component(uuid):
             url = f"https://pro.easyeda.com/api/v2/components/{uuid}"
-            r = requests.get(url)
+            r = self.session.get(url)
             r.raise_for_status()
             return r.json()["result"]
 
@@ -171,7 +136,7 @@ class ComponentLoader():
 
         # Separate dataStr for footprints
         for f_uuid, f_data in fetched_footprints.items():
-            ds = extractDataStr(f_data)
+            ds = self.extractDataStr(f_data)
             if ds:
                 footprint_data_str[f_uuid] = ds
 
@@ -179,7 +144,7 @@ class ComponentLoader():
 
         # Separate dataStr for symbols
         for s_uuid, s_data in fetched_symbols.items():
-            ds = extractDataStr(s_data)
+            ds = self.extractDataStr(s_data)
             if ds:
                 symbol_data_str[s_uuid] = ds
 
@@ -258,7 +223,7 @@ class ComponentLoader():
                 modelTitle = device["attributes"]["3D Model Title"]
                 modelTransform = device["attributes"].get("3D Model Transform", "")
 
-                dataStr = extractDataStr(fetched_3dmodels[modelUuid])
+                dataStr = self.extractDataStr(fetched_3dmodels[modelUuid])
 
                 if dataStr:
                     directUuid = json.loads(dataStr)["model"]
@@ -391,3 +356,39 @@ class ComponentLoader():
         info( "Already existing models: %d" % self.statExisting )
         info( "Failed downloads: %d" % self.statFailed )
         self.progress(100, 100)
+
+    # Extract dataStr from component data. If dataStr is not available, try to decrypt and decompress the data from dataStrId URL.
+    def extractDataStr(self, component_data):
+        if not component_data:
+            return None
+            
+        # Try direct dataStr first
+        dataStr = component_data.get("dataStr")
+        if dataStr:
+            return dataStr
+            
+        # Try dataStrId if dataStr not available
+        dataStrId = component_data.get("dataStrId")
+        if dataStrId:
+            try:
+                keyHex = component_data.get("key")
+                ivHex = component_data.get("iv")
+
+                debug("dataStrId key: " + keyHex)
+                debug("dataStrId iv: " + ivHex)
+                
+                dataStrResp = self.session.get(dataStrId)
+                dataStrResp.raise_for_status()
+
+                debug("dataStrId encrypted content: " + dataStrResp.content.hex())
+                
+                from . import decryptor
+                decryptedStr = decryptor.decryptDataStrIdData(dataStrResp.content, keyHex, ivHex)
+
+                debug("dataStrId decrypted content: " + decryptedStr)
+
+                return decryptedStr
+            except Exception as e:
+                info(f"Failed to fetch/decrypt dataStrId: {e}")
+                
+        return None

@@ -19,6 +19,22 @@ import logging
 import wx
 from typing import Optional
 
+# Read version file
+__version__ = "0.0.0"
+try:
+    version_file = os.path.join(os.path.dirname(__file__), "VERSION")
+    if os.path.exists(version_file):
+        with open(version_file, "r") as f:
+            version_content = f.read().strip()
+            if version_content:
+                __version__ = version_content
+except Exception:
+    pass
+
+DEFAULT_USER_AGENT = f"jlc-kicad-lib-loader/{__version__}"
+
+session = requests.Session()
+session.headers.update({"User-Agent": DEFAULT_USER_AGENT})
 
 wx_html2_available = True
 try: 
@@ -90,6 +106,7 @@ class EasyEDALibLoaderPlugin(ActionPlugin):
 
     def Run(self):
         dlg = EasyEdaLibLoaderDialog(None)
+        dlg.SetTitle(dlg.GetTitle() + f" Version {__version__}")
 
         handler = WxTextCtrlHandler(dlg.m_log)
         logging.getLogger().handlers.clear();
@@ -151,7 +168,7 @@ class EasyEDALibLoaderPlugin(ActionPlugin):
                 library_manager.prompt_add_library(dlg, target_name, target_path)
 
             def threadedFn():
-                loader = ComponentLoader(kiprjmod=kiprjmod, target_path=target_path, target_name=target_name, progress=progressHandler)
+                loader = ComponentLoader(kiprjmod=kiprjmod, target_path=target_path, target_name=target_name, progress=progressHandler, session=session)
                 loader.downloadAll(components)
 
                 wx.CallAfter(dlg.m_actionBtn.Enable)
@@ -204,7 +221,7 @@ class EasyEDALibLoaderPlugin(ActionPlugin):
                         "path": facet,
                     }
 
-                resp = requests.post( "https://pro.easyeda.com/api/v2/devices/search", data=reqData )
+                resp = session.post( "https://pro.easyeda.com/api/v2/devices/search", data=reqData )
                 resp.raise_for_status()
                 found = resp.json()
 
@@ -295,7 +312,7 @@ class EasyEDALibLoaderPlugin(ActionPlugin):
                 easyedaLink = None
 
                 try:
-                    dev_info = requests.get(f"https://pro.easyeda.com/api/devices/{itemCode}")
+                    dev_info = session.get(f"https://pro.easyeda.com/api/devices/{itemCode}")
                     dev_info.raise_for_status()
                     debug("device info: " + json.dumps(dev_info.json(), indent=4))
                     device = dev_info.json()["result"]
