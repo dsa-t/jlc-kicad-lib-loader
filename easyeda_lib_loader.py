@@ -1,23 +1,22 @@
 #!/usr/bin/env python
 from __future__ import annotations
-
-# --- SSL fix for macOS KiCad Python ---
-try:
-    import certifi
-    import os
-    os.environ.setdefault("SSL_CERT_FILE", certifi.where())
-except Exception:
-    pass
-# -------------------------------------
-
-import math
-import sys
-import os
-import traceback
-import requests
-import logging
-import wx
 from typing import Optional
+
+import os
+import math
+import traceback
+import logging
+
+if "darwin" in os.sys.platform:
+    # SSL fix for macOS KiCad Python ---
+    try:
+        import certifi
+        os.environ.setdefault("SSL_CERT_FILE", certifi.where())
+    except Exception:
+        pass
+
+import requests
+import wx
 
 # Read version file
 __version__ = "0.0.0"
