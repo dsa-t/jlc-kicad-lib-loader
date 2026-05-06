@@ -22,7 +22,7 @@ echo $VERSION > .out/archive/plugins/VERSION
 
 echo "Modify archive metadata.json"
 sed -i "s/VERSION_HERE/$VERSION/g" .out/archive/metadata.json
-sed -i "s/\"kicad_version_max\": \"9.0\",/\"kicad_version_max\": \"9.0\"/g" .out/archive/metadata.json
+sed -i "s/\"kicad_version_max\": \"10.0\",/\"kicad_version_max\": \"10.0\"/g" .out/archive/metadata.json
 sed -i "/SHA256_HERE/d" .out/archive/metadata.json
 sed -i "/DOWNLOAD_SIZE_HERE/d" .out/archive/metadata.json
 sed -i "/DOWNLOAD_URL_HERE/d" .out/archive/metadata.json
