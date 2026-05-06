@@ -91,6 +91,7 @@ class WxTextCtrlHandler(logging.Handler):
         wx.CallAfter(self.ctrl.AppendText, s)
 
 class EasyEDALibLoaderPlugin(ActionPlugin):
+    dialog: Optional[EasyEdaLibLoaderDialog] = None
     downloadThread: Optional[Thread] = None
     searchThread: Optional[Thread] = None
     searchPage = 1
@@ -104,7 +105,16 @@ class EasyEDALibLoaderPlugin(ActionPlugin):
         self.icon_file_name = os.path.join(os.path.dirname(__file__), 'easyeda_lib_loader.png')
 
     def Run(self):
-        dlg = EasyEdaLibLoaderDialog(None)
+        if(self.dialog is None):
+            self.dialog = self.createDialog()
+
+        self.dialog.Show()
+        self.dialog.Raise()
+
+    def createDialog(self):
+        frame = wx.FindWindowByName("PcbFrame")
+    
+        dlg = EasyEdaLibLoaderDialog(frame)
         dlg.SetTitle(dlg.GetTitle() + f" Version {__version__}")
 
         handler = WxTextCtrlHandler(dlg.m_log)
@@ -399,7 +409,7 @@ class EasyEDALibLoaderPlugin(ActionPlugin):
         def onWebviewNewWindow( event ):
             wx.LaunchDefaultBrowser( event.GetURL() )
 
-        def onClose( event ):
+        def onDestroy( event ):
             if self.searchThread:
                 interrupt_thread(self.searchThread)
                 self.searchThread.join( 5 )
@@ -407,8 +417,8 @@ class EasyEDALibLoaderPlugin(ActionPlugin):
             if self.downloadThread:
                 interrupt_thread(self.downloadThread)
                 self.downloadThread.join( 5 )
-                
-            dlg.Destroy();
+
+            event.Skip()
 
         dlg.m_searchResultsTree.AppendColumn("Code/UUID", width=wx.COL_WIDTH_AUTOSIZE, flags=wx.COL_RESIZABLE | wx.COL_SORTABLE )
         dlg.m_searchResultsTree.AppendColumn("Name", width=wx.COL_WIDTH_AUTOSIZE, flags=wx.COL_RESIZABLE | wx.COL_SORTABLE)
@@ -442,7 +452,7 @@ class EasyEDALibLoaderPlugin(ActionPlugin):
         dlg.m_webViewPanel.Layout()
 
         dlg.SetEscapeId(wx.ID_CANCEL)
-        dlg.Bind(wx.EVT_CLOSE, onClose)
+        dlg.Bind(wx.EVT_WINDOW_DESTROY, onDestroy)
         
         dlg.m_searchResultsTree.Bind(wx.dataview.EVT_TREELIST_ITEM_ACTIVATED, onSearchItemActivated)
         dlg.m_searchResultsTree.Bind(wx.dataview.EVT_TREELIST_SELECTION_CHANGED, onSearchItemSelected)
@@ -455,4 +465,4 @@ class EasyEDALibLoaderPlugin(ActionPlugin):
         dlg.m_debug.Bind(wx.EVT_CHECKBOX, onDebugCheckbox)
 
         dlg.m_textCtrlSearch.SetFocus()
-        dlg.ShowModal()
+        return dlg
